@@ -2,14 +2,16 @@ package mongoabstraction
 
 import (
 	"context"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 const (
-	databaseName          string = "testdb"
-	collectionName        string = "movies"
+	DatabaseName          string = "testdb"
+	CollectionName        string = "movies"
 	connectionStringAdmin string = "mongodb://admin:myadminpassword@192.168.0.148:27017"
 	connectionStringUser  string = "mongodb://user2:user2password@192.168.0.148:27017/user2?authSource=testdb"
 )
@@ -84,6 +86,15 @@ func NewClient() (ClientHelper, error) {
 // func NewDatabase(cnf *config.Config, client ClientHelper) DatabaseHelper {
 // 	return client.Database(cnf.DatabaseName)
 // }
+
+func (mc *mongoClient) CheckConnection(ctx context.Context) error {
+	err := mc.cl.Ping(ctx, readpref.Primary())
+	if err != nil {
+		fmt.Println("Could not connect to mongo client")
+		return fmt.Errorf("could not connect to mongo client, %v", err)
+	}
+	return nil
+}
 
 func (mc *mongoClient) Database(dbName string) DatabaseHelper {
 	db := mc.cl.Database(dbName)
