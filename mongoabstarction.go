@@ -28,7 +28,7 @@ var (
 		Password:   "user2password",
 		AuthSource: "testdb",
 	}
-	adminURI string = "192.168.0.148:27017"
+	adminURI string = connectionStringAdmin
 	user2URI string = "192.168.0.148:27017/user2"
 )
 
@@ -51,6 +51,7 @@ type ClientHelper interface {
 	Database(string) DatabaseHelper
 	Connect(context.Context) error
 	StartSession() (mongo.Session, error)
+	CheckConnection(context.Context) error
 }
 
 type mongoClient struct {
