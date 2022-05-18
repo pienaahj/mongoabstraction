@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	DatabaseName          string = "testdb"
-	CollectionName        string = "movies"
-	connectionStringAdmin string = "mongodb://admin:myadminpassword@192.168.0.148:27017"
+	DatabaseName   string = "testdb"
+	CollectionName string = "movies"
+	// connectionStringAdmin string = "mongodb://admin:myadminpassword@192.168.0.148:27017"
+	connectionStringAdmin string = "mongodb://admin:myadminpassword@localhost:27017"
 	connectionStringUser  string = "mongodb://user2:user2password@192.168.0.148:27017/user2?authSource=testdb"
 )
 
