@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -12,8 +13,8 @@ import (
 const (
 	DatabaseName   string = "testdb"
 	CollectionName string = "movies"
-	// connectionStringAdmin string = "mongodb://admin:myadminpassword@192.168.0.148:27017"
-	connectionStringAdmin string = "mongodb://admin:myadminpassword@localhost:27017"
+	// connectionStringAdmin string = "mongodb://admin:myadminpassword@192.168.0.148:27017" works for local lan clients
+	connectionStringAdmin string = "mongodb://admin:myadminpassword@localhost:27017" // works for iMac clients
 	connectionStringUser  string = "mongodb://user2:user2password@192.168.0.148:27017/user2?authSource=testdb"
 )
 
@@ -40,6 +41,7 @@ type DatabaseHelper interface {
 
 type CollectionHelper interface {
 	FindOne(context.Context, interface{}) SingleResultHelper
+	FindMany(ctx context.Context, filter interface{}) (mongoResults, error)
 	InsertOne(context.Context, interface{}) (interface{}, error)
 	DeleteOne(ctx context.Context, filter interface{}) (int64, error)
 }
@@ -47,7 +49,6 @@ type CollectionHelper interface {
 type SingleResultHelper interface {
 	Decode(v interface{}) error
 }
-
 type ClientHelper interface {
 	Database(string) DatabaseHelper
 	Connect(context.Context) error
@@ -67,6 +68,10 @@ type mongoCollection struct {
 
 type mongoSingleResult struct {
 	sr *mongo.SingleResult
+}
+
+type mongoResults struct {
+	rs []bson.M
 }
 
 type mongoSession struct {
@@ -125,6 +130,28 @@ func (md *mongoDatabase) Client() ClientHelper {
 func (mc *mongoCollection) FindOne(ctx context.Context, filter interface{}) SingleResultHelper {
 	singleResult := mc.coll.FindOne(ctx, filter)
 	return &mongoSingleResult{sr: singleResult}
+}
+
+func (mc *mongoCollection) FindMany(ctx context.Context, filter interface{}) (mongoResults, error) {
+	var results []bson.M
+	curr, err := mc.coll.Find(ctx, filter)
+	if err != nil {
+		return mongoResults{}, fmt.Errorf("an error occured while finding %v", filter)
+	}
+	defer curr.Close(ctx)
+	for curr.Next(context.TODO()) {
+		var ir bson.M
+		err = curr.Decode((&ir))
+		if err != nil {
+			return mongoResults{}, fmt.Errorf("an error occured while decoding items %v", err)
+		}
+		results = append(results, ir)
+	}
+	if err := curr.Err(); err != nil {
+		return mongoResults{}, fmt.Errorf("an error occured on cursor %v", err)
+	}
+
+	return mongoResults{rs: results}, nil
 }
 
 func (mc *mongoCollection) InsertOne(ctx context.Context, document interface{}) (interface{}, error) {
